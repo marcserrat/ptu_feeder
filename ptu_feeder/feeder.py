@@ -53,8 +53,8 @@ def main(config_file):
                     file,
                     config['destination'],
                 )
-            except Exception as e:
-                print(e)
+            except Exception:
+                pass
     print("Done")
 
 
