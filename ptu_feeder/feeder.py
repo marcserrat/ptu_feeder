@@ -74,7 +74,7 @@ def process_line(line, config, client):
     try:
         data = line.split(',')
         if 'CPU' in data[2] and data[3] == config['core']:
-            data[0] = parser.parse(data[0])
+            data[0] = parser.parse(data[0]+'Z')
             line_protocol = (
                 f"{config['measurement']},"
                 f"hostname={HOSTNAME},CPU={data[2]},CORE={data[3] if data[3] else 'ALL'}"
