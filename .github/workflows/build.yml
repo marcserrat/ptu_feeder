@@ -1,0 +1,101 @@
+name: Publish windows utility
+
+on:
+  push:
+    tags:
+        - '*'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        submodules: true
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry pynsist wheel
+        poetry install
+    - name: Extract tag name
+      uses: actions/github-script@v3
+      id: tag
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        result-encoding: string
+        script: |
+          return context.payload.ref.replace(/refs\/tags\//, '')
+    - name: Generate wheel
+      run: |
+        poetry version ${{ steps.tag.outputs.result }}
+        poetry build
+        cp dist/*.whl resources/.
+    - name: Generate pynsist config file
+      run: |
+        poetry export --format constraints.txt --without-hashes --output resources/requirements.txt
+        poetry run python resources/generate_pynsist_config.py
+        cat resources/feeder.cfg
+    - name: Build windows installer
+      run: |
+        pynsist resources/feeder.cfg
+    - name: Package windows distro
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        OS_NAME: windows
+        CPU_ARCH: amd64
+        PKG_TAG: ${{ steps.tag.outputs.result }}
+      run: |
+        & { compress-archive -path '.\resources\build\nsis\feeder_${{ steps.tag.outputs.result }}_setup.exe' -destinationpath '.\feeder_${{ steps.tag.outputs.result }}_windows_amd64.zip' }
+    - name: Upload distro package to artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows_distro
+        path: feeder_${{ steps.tag.outputs.result }}_windows_amd64.zip
+        retention-days: 5
+  release:
+    needs: windows
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        submodules: true
+    - name: Extract tag name
+      uses: actions/github-script@v6
+      id: tag
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        result-encoding: string
+        script: |
+          return context.payload.ref.replace(/refs\/tags\//, '')
+    - name: Create release
+      uses: ncipollo/release-action@v1
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        allowUpdates: true
+        tag: ${{ steps.tag.outputs.result }}
+        name: Release ${{ steps.tag.outputs.result }}
+        draft: false
+        prerelease: false
+    - name: Download windows artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: windows_distro
+        path: ./
+    - name: Attach windows distro to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./feeder_${{ steps.tag.outputs.result }}_windows_amd64.zip
+        asset_name: feeder_${{ steps.tag.outputs.result }}_windows_amd64.zip
+        asset_content_type: application/zip
