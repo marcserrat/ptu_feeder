@@ -11,23 +11,6 @@ from dateutil import parser
 
 HOSTNAME = socket.gethostname()
 
-
-def follow(file, wait_time=30):
-    file.seek(0, os.SEEK_END)
-    start = datetime.utcnow()
-    while True:
-        line = file.readline()
-        if not line:
-            waiting = datetime.utcnow() - start
-            if waiting.total_seconds() > wait_time:
-                print(f"Stoping to process {file.name}, waited {waiting} for new lines")
-                break
-            time.sleep(0.1)
-            continue
-
-        yield line
-
-
 @click.command()
 @click.option(
     '-c', '--config_file',
@@ -39,10 +22,6 @@ def main(config_file):
     try:
         config = json.load(config_file)
         client = mqtt.Client()
-        #client.username_pw_set(
-        #    config['broker_username'],
-        #    config['broker_password']
-        #)
         client.connect(config['broker_address'], port=int(config['broker_port']))
     except Exception as e:
         print(f'Error while opening file: {e}')
@@ -59,20 +38,23 @@ def main(config_file):
             continue
         start_time = datetime.utcnow()
         for file in files_to_process:
-            print(f'Processing file {file}')
-            logfile = open(
-                os.path.join(config['source'], file),
-                "r",
-            )
-            log_lines = follow(logfile, config['wait_rotation'])
-            for line in log_lines:
-                process_line(line, config, client)
-            logfile.close()
-            rotate_logfile(
-                os.path.join(config['source'], file),
-                file,
-                config['destination'],
-            )
+            try:
+                print(f'Processing file {file}')
+                logfile = open(
+                    os.path.join(config['source'], file),
+                    "r",
+                )
+                log_lines = logfile.readlines()
+                for line in log_lines:
+                    process_line(line, config, client)
+                logfile.close()
+                rotate_logfile(
+                    os.path.join(config['source'], file),
+                    file,
+                    config['destination'],
+                )
+            except Exception as e:
+                print(e)
     print("Done")
 
 
