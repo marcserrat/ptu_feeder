@@ -112,7 +112,6 @@ def write_conf(wheels):
         'console': 'true',
         'target': '$SYSDIR\\WindowsPowerShell\\v1.0\\powershell.exe',
         'parameters': '-noexit -ExecutionPolicy Bypass -File "$INSTDIR\\feeder_shell.ps1"',
-        'icon': 'connect.ico',
     }
     config['Python'] = {
         'version': '3.10.7',
