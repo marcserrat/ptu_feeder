@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "submer-ptu-feeder"
+version = "1.1"
+description = "Small utility to feed csv files from PTU tool"
+authors = ["Submer"]
+license = "Apache-2.0"
+
+packages = [
+    { include = "ptu_feeder" },
+]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Utilities"
+]
+
+keywords = [
+    "ptu tools",
+]
+
+
+[tool.poetry.scripts]
+ptu_feeder = 'ptu_feeder.feeder:main'
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4"
+python-dateutil = "2.8.*"
+click = "8.1.*"
+paho-mqtt = "1.6.*"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "setuptools>42"]
+build-backend = "poetry.core.masonry.api"
+
+
