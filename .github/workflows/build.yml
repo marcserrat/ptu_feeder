@@ -76,7 +76,7 @@ jobs:
         script: |
           return context.payload.ref.replace(/refs\/tags\//, '')
     - name: Create release
-      uses: ncipollo/release-action@v1
+      uses: ncipollo/release-action@v2
       id: create_release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
