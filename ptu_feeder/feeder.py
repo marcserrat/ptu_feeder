@@ -1,10 +1,11 @@
 import click
+import csv
 import json
 import os
 import time
 import shutil
 import socket
-from datetime import datetime
+from datetime import datetime, timedelta
 import paho.mqtt.client as mqtt
 from dateutil import parser
 
@@ -48,6 +49,14 @@ def main(config_file):
                 for line in log_lines:
                     process_line(line, config, client)
                 logfile.close()
+                if config.get('fix_timezone') and config.get('offset') and config.get('timezone_destination'):
+                    if not os.path.exists(config.get('timezone_destination')):
+                        os.mkdir(config.get('timezone_destination'))
+                    fix_timezone(
+                        os.path.join(config['source'], file),
+                        os.path.join(config.get('timezone_destination'), file),
+                        config.get('offset'),
+                    )
                 rotate_logfile(
                     os.path.join(config['source'], file),
                     file,
@@ -56,6 +65,36 @@ def main(config_file):
             except Exception:
                 pass
     print("Done")
+
+
+def fix_time(date_string, offset):
+    try:
+        dtobj = parser.parse(date_string) - timedelta(hours=offset)
+    except Exception:
+        return date_string
+    return dtobj.strftime("%m/%d/%Y %H:%M:%S.%f")[:-3]
+
+
+def fix_timezone(source_path, target_path, offset, column_id=0):
+    try:
+        with open(source_path, 'r') as csv_file:
+            with open(target_path, 'w') as output_file:
+                reader = csv.reader(csv_file, delimiter=',')
+                writer = csv.writer(output_file, delimiter=',', lineterminator="\n")
+                try:
+                    for row in reader:
+                        col = 0
+                        output = []
+                        for column in row:
+                            if col == column_id:
+                                column = fix_time(column, offset)
+                            output.append(column)
+                            col += 1
+                        writer.writerow(output)
+                except:
+                    pass
+    except:
+        pass
 
 
 def rotate_logfile(file_location, file_name, destination):

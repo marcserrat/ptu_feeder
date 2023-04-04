@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "submer-ptu-feeder"
-version = "1.1"
+version = "1.2"
 description = "Small utility to feed csv files from PTU tool"
 authors = ["Submer"]
 license = "Apache-2.0"
